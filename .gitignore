@@ -1,0 +1,43 @@
+# ---------------------------------------------------------------------------
+# KEINE echten Personendaten ins Repository!
+# ---------------------------------------------------------------------------
+# Arbeitszeit-Datenbank (enthält Namen, Geburtsdaten, Zeiten)
+webapp/instance/
+*.sqlite
+*.sqlite3
+secret_key
+
+# Access-Datenbanken (Originaldaten)
+*.accdb
+*.mdb
+*.laccdb
+
+# ---------------------------------------------------------------------------
+# Python
+# ---------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# ---------------------------------------------------------------------------
+# macOS / Editor
+# ---------------------------------------------------------------------------
+.DS_Store
+*.log
+.idea/
+.vscode/
+
+#--------
+# Session backups for reproducibility
+#--------
+pi-session/
+
+#--------
+# Projekt-Memory (interne Notizen, NICHT öffentlich)
+#--------
+MEMORY.md
+
+# Interne Planungs-/Statusdoku (nicht für das öffentliche Repo)
+PROJEKT.md

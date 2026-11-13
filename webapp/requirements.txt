@@ -1,0 +1,6 @@
+flask>=3.0
+# werkzeug kommt als Abhängigkeit von flask mit
+
+# Optional – nur für QR-Code + PDF-Aushang (gen_qr.py):
+qrcode[pil]>=7.4
+fpdf2>=2.7

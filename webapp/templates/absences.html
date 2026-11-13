@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block content %}
+{% if staff %}
+<div class="card selector">
+  <form method="get">
+    <label>Person auswählen
+      <select name="student_id" onchange="this.form.submit()">
+        <option value="">– bitte wählen –</option>
+        {% for s in students %}
+          <option value="{{ s.id }}" {% if s.id == student_id %}selected{% endif %}>
+            {{ s.last_name }}, {{ s.first_name }}{% if not s.active %} (inaktiv){% endif %}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+  </form>
+</div>
+{% endif %}
+
+{% if student_id %}
+<div class="card">
+  <h1>Abwesenheit eintragen</h1>
+  <form method="post" class="absenceform">
+    {% if staff %}<input type="hidden" name="student_id" value="{{ student_id }}">{% endif %}
+    <label>Art
+      <select name="type">
+        {% for k, v in types.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}
+      </select>
+    </label>
+    <div class="grid2">
+      <label>Von <input type="date" name="start_date" value="{{ today }}" required></label>
+      <label>Bis <input type="date" name="end_date" value="{{ today }}"></label>
+    </div>
+    <label>Notiz (optional) <input name="note"></label>
+    <button class="btn primary" type="submit">Eintragen</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2>Eingetragene Abwesenheiten</h2>
+  <table class="table">
+    <thead><tr><th>Art</th><th>Von</th><th>Bis</th><th>Notiz</th><th></th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr>
+        <td>{{ types.get(r.type, r.type) }}</td>
+        <td>{{ r.start_date }}</td>
+        <td>{{ r.end_date }}</td>
+        <td>{{ r.note or '' }}</td>
+        <td>
+          <form method="post" action="{{ url_for('absence_delete', aid=r.id) }}"
+                onsubmit="return confirm('Abwesenheit wirklich löschen?')">
+            <button class="linkbtn">✕</button>
+          </form>
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="5" class="muted">Keine Einträge.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card"><p class="muted">Bitte oben eine Person auswählen.</p></div>
+{% endif %}
+{% endblock %}

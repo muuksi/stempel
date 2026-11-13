@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block content %}
+{% if staff %}
+<div class="card selector">
+  <form method="get">
+    <label>Person auswählen
+      <select name="student_id" onchange="this.form.submit()">
+        <option value="">– bitte wählen –</option>
+        {% for s in students %}
+          <option value="{{ s.id }}" {% if s.id == student_id %}selected{% endif %}>
+            {{ s.last_name }}, {{ s.first_name }}{% if not s.active %} (inaktiv){% endif %}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+    <input type="hidden" name="ym" value="{{ '%04d-%02d'|format(year, month) }}">
+  </form>
+</div>
+{% endif %}
+
+{% if student_id and ov %}
+<div class="card">
+  <div class="monthnav">
+    <a class="navbtn" href="{{ url_for('month', student_id=student_id, ym='%04d-%02d'|format(*prev_ym)) }}">‹</a>
+    <h1>{{ '%02d/%d'|format(month, year) }}</h1>
+    <a class="navbtn" href="{{ url_for('month', student_id=student_id, ym='%04d-%02d'|format(*next_ym)) }}">›</a>
+  </div>
+  <div class="stats">
+    <div><span class="muted">Soll</span><strong>{% if ov.target %}{{ '%.1f'|format(ov.target) }} h{% else %}—{% endif %}</strong></div>
+    <div><span class="muted">Ist</span><strong>{{ '%.2f'|format(ov.ist_hours) }} h</strong></div>
+    <div><span class="muted">Abwesenheit</span><strong>{{ '%.2f'|format(ov.abs_hours) }} h</strong><small class="muted"> ({{ ov.abs_days }} Tage)</small></div>
+    <div><span class="muted">Saldo</span>
+      <strong class="{% if ov.saldo is not none and ov.saldo < 0 %}neg{% elif ov.saldo is not none %}pos{% endif %}">
+        {% if ov.saldo is not none %}{{ '%+.2f'|format(ov.saldo) }} h{% else %}—{% endif %}
+      </strong>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <table class="table">
+    <thead><tr><th>Datum</th><th>Beginn</th><th>Pausen</th><th>Ende</th><th>Zeit</th><th>Art</th></tr></thead>
+    <tbody>
+    {% for e in entries %}
+      <tr>
+        <td>{{ e.work_date }}</td>
+        <td>{{ e.start_at or '—' }}</td>
+        <td>{% if e.breaks %}{% for b in e.breaks %}{{ b.break_start }}–{{ b.break_end or '…' }}{% if not loop.last %}<br>{% endif %}{% endfor %}{% else %}—{% endif %}</td>
+        <td>{{ e.end_at or '…' }}</td>
+        <td>{% if e.minutes is not none %}{{ '%.2f'|format(e.minutes/60) }} h{% else %}—{% endif %}</td>
+        <td>{% if e.is_manual %}manuell{% else %}Stempel{% endif %}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" class="muted">Keine Einträge diesen Monat.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card"><p class="muted">Bitte oben eine Person auswählen.</p></div>
+{% endif %}
+{% endblock %}

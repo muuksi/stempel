@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% block content %}
+
+{# ----------------------------- Heute anwesend ----------------------------- #}
+<div class="card">
+  <h1>Anwesenheit heute</h1>
+  <ul class="board">
+    {% for b in board %}
+      <li class="b-{{ b.key }}">
+        <span class="dot"></span>
+        <span class="bname">{{ b.student.last_name }}, {{ b.student.first_name }}</span>
+        <span class="bstate">{{ b.label }}</span>
+      </li>
+    {% else %}
+      <li class="muted">Keine aktiven Personen.</li>
+    {% endfor %}
+  </ul>
+</div>
+
+{# ----------------------------- Monatskalender ----------------------------- #}
+<div class="card">
+  <div class="monthnav">
+    <a class="navbtn" href="{{ url_for('admin', ym='%04d-%02d'|format(*prev)) }}">‹</a>
+    <h1>Kalender {{ '%02d/%d'|format(month, year) }}</h1>
+    <a class="navbtn" href="{{ url_for('admin', ym='%04d-%02d'|format(*next)) }}">›</a>
+  </div>
+  <div class="calwrap">
+    <table class="cal">
+      <thead>
+        <tr>
+          <th class="who">Person</th>
+          {% for d in days %}
+            <th class="{% if d.weekend %}wk{% endif %}">{{ '%02d'|format(d.day) }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+      {% for s in grid_students %}
+        <tr>
+          <td class="who">{{ s.last_name }}, {{ s.first_name[0] }}.</td>
+          {% for d in days %}
+            {% set cell = grid[s.id][loop.index0] %}
+            <td class="{% if d.weekend %}wk{% endif %}
+                       {% if cell.abs %}abs-{{ cell.abs }}{% elif cell.hours is not none %}worked{% endif %}">
+              {% if cell.abs == 'urlaub' %}U
+              {% elif cell.abs == 'krank' %}K
+              {% elif cell.abs == 'sonstiges' %}S
+              {% elif cell.hours is not none %}{{ '%.1f'|format(cell.hours) }}
+              {% endif %}
+            </td>
+          {% endfor %}
+        </tr>
+      {% else %}
+        <tr><td colspan="{{ days|length + 1 }}" class="muted">Keine aktiven Personen.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="muted small">U = Urlaub · K = Krankheit · S = Sonstiges · Zahl = gearbeitete Stunden.</p>
+</div>
+
+{# ----------------------------- Personen verwalten ------------------------- #}
+<div class="card">
+  <h1>Personen verwalten</h1>
+  <table class="table">
+    <thead><tr><th>Name</th><th>Login</th><th>Soll (h)</th><th>aktiv</th><th>Aktionen</th><th></th></tr></thead>
+    <tbody>
+    {% for s in persons %}
+      <tr>
+        <td>{{ s.last_name }}, {{ s.first_name }}</td>
+        <td>{{ s.username or '—' }}</td>
+        <td>
+          <form method="post" action="{{ url_for('admin_set_target', sid=s.id) }}" class="inline">
+            <input type="text" name="monthly_target_hours" size="4"
+                   value="{{ s.monthly_target_hours if s.monthly_target_hours is not none else '' }}">
+            <button class="btn small" title="Soll speichern">✓</button>
+          </form>
+        </td>
+        <td>{{ 'ja' if s.active else 'nein' }}</td>
+        <td class="actions">
+          <form method="post" action="{{ url_for('admin_toggle_active', sid=s.id) }}">
+            <button class="btn small" title="aktiv/inaktiv">{{ 'deaktivieren' if s.active else 'aktivieren' }}</button>
+          </form>
+          <form method="post" action="{{ url_for('admin_setpass', sid=s.id) }}"
+                onsubmit="return confirm('Neues Passwort für {{ s.first_name }} {{ s.last_name }} erzeugen?')">
+            <button class="btn small" title="Passwort zurücksetzen">PW neu</button>
+          </form>
+        </td>
+        <td>
+          <form method="post" action="{{ url_for('admin_delete_student', sid=s.id) }}"
+                onsubmit="return confirm('{{ s.first_name }} {{ s.last_name }} samt aller Zeiten/Abwesenheiten LÖSCHEN?')">
+            <button class="linkbtn" title="löschen">✕</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
+  <h2>Person hinzufügen</h2>
+  <form method="post" action="{{ url_for('admin_add_student') }}" class="addperson">
+    <div class="grid2">
+      <label>Vorname <input name="first_name" required></label>
+      <label>Nachname <input name="last_name" required></label>
+      <label>Benutzername <input name="username" required autocapitalize="none"></label>
+      <label>Monatssoll (h) <input name="monthly_target_hours" size="5"></label>
+    </div>
+    <label>Startpasswort (leer = automatisch) <input name="password"></label>
+    <button class="btn primary" type="submit">Anlegen</button>
+  </form>
+  <p class="muted small">Beim Löschen werden auch alle Zeiteinträge und Abwesenheiten
+    der Person entfernt. Alternativ „deaktivieren" wählen — dann bleiben die Daten erhalten.</p>
+</div>
+
+{# ----------------------------- Letzte Einträge / Abwesenheiten ------------ #}
+<div class="card">
+  <div class="inline" style="justify-content:space-between">
+    <h1>Letzte Zeiteinträge</h1>
+    <a class="btn small" href="{{ url_for('admin_export') }}">⬇ CSV-Export</a>
+  </div>
+  <table class="table">
+    <thead><tr><th>Datum</th><th>Name</th><th>Beginn</th><th>Ende</th><th>Zeit</th><th>Art</th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr>
+        <td>{{ r.work_date }}</td>
+        <td>{{ r.last_name }}, {{ r.first_name }}</td>
+        <td>{{ r.start_at or '—' }}</td>
+        <td>{{ r.end_at or '…' }}</td>
+        <td>{% if r.minutes is not none %}{{ '%.2f'|format(r.minutes/60) }} h{% else %}—{% endif %}</td>
+        <td>{% if r.is_manual %}manuell{% else %}Stempel{% endif %}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" class="muted">Keine Einträge.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h1>Abwesenheiten</h1>
+  <table class="table">
+    <thead><tr><th>Name</th><th>Art</th><th>Von</th><th>Bis</th><th>Notiz</th></tr></thead>
+    <tbody>
+    {% for a in abs_rows %}
+      <tr>
+        <td>{{ a.last_name }}, {{ a.first_name }}</td>
+        <td>{{ types.get(a.type, a.type) }}</td>
+        <td>{{ a.start_date }}</td>
+        <td>{{ a.end_date }}</td>
+        <td>{{ a.note or '' }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="5" class="muted">Keine Abwesenheiten.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block content %}
+{% if staff %}
+<div class="card selector">
+  <form method="get">
+    <label>Person auswählen
+      <select name="student_id" onchange="this.form.submit()">
+        <option value="">– bitte wählen –</option>
+        {% for s in students %}
+          <option value="{{ s.id }}" {% if s.id == student_id %}selected{% endif %}>
+            {{ s.last_name }}, {{ s.first_name }}{% if not s.active %} (inaktiv){% endif %}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+    <input type="hidden" name="work_date" value="{{ request.args.get('work_date') or today }}">
+  </form>
+</div>
+{% endif %}
+
+{% if student_id %}
+<div class="card">
+  <h1>Zeit manuell erfassen</h1>
+  <form method="get" class="inline-load">
+    <label>Datum
+      <input type="date" name="work_date" value="{{ request.args.get('work_date') or today }}"
+             onchange="this.form.submit()">
+    </label>
+    {% if staff %}<input type="hidden" name="student_id" value="{{ student_id }}">{% endif %}
+  </form>
+
+  <form method="post">
+    {% if staff %}<input type="hidden" name="student_id" value="{{ student_id }}">{% endif %}
+    <input type="hidden" name="work_date" value="{{ request.args.get('work_date') or today }}">
+    <div class="grid2">
+      <label>Beginn
+        <input type="time" name="start_at" value="{{ existing.start_at if existing else '' }}">
+      </label>
+      <label>Ende
+        <input type="time" name="end_at" value="{{ existing.end_at if existing else '' }}">
+      </label>
+    </div>
+    <fieldset class="breaks">
+      <legend>Pausen</legend>
+      <div id="breakRows"></div>
+      <button type="button" class="btn small" onclick="addBreak()">+ Pause hinzufügen</button>
+    </fieldset>
+    <label>Notiz (optional)
+      <input name="note" value="{{ existing.note if existing else '' }}">
+    </label>
+    <button class="btn primary" type="submit">
+      {% if existing %}Änderung speichern{% else %}Speichern{% endif %}
+    </button>
+  </form>
+</div>
+
+<script>
+  function addBreak(s, e){
+    const wrap = document.getElementById('breakRows');
+    const row = document.createElement('div');
+    row.className = 'grid2 breakrow';
+    row.innerHTML =
+      '<label>Pause ab<input type="time" name="break_start" value="'+(s||'')+'"></label>' +
+      '<label>Pause bis<input type="time" name="break_end" value="'+(e||'')+'">' +
+      '<button type="button" class="linkbtn remove" onclick="this.closest(\'.breakrow\').remove()">✕</button></label>';
+    wrap.appendChild(row);
+  }
+  {% if existing and existing.breaks %}
+    {% for b in existing.breaks %}addBreak("{{ b.break_start or '' }}", "{{ b.break_end or '' }}");{% endfor %}
+  {% else %}
+    addBreak();
+  {% endif %}
+</script>
+{% else %}
+<div class="card"><p class="muted">Bitte oben eine Person auswählen.</p></div>
+{% endif %}
+{% endblock %}

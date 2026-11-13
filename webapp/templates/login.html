@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card login">
+  <h1>Anmeldung</h1>
+  <form method="post">
+    <label>Benutzername
+      <input name="username" autocomplete="username" autocapitalize="none" required autofocus>
+    </label>
+    <label>Passwort
+      <input name="password" type="password" autocomplete="current-password" required>
+    </label>
+    <label class="row">
+      <input type="checkbox" name="remember" value="1" checked>
+      <span>Auf diesem Gerät angemeldet bleiben</span>
+    </label>
+    <button class="btn primary" type="submit">Anmelden</button>
+  </form>
+</div>
+{% endblock %}

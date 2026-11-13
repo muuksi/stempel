@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <div class="who">
+    <strong>{{ user.username }}</strong>
+    <span class="clock" id="clock"></span>
+  </div>
+
+  {% if stale_date %}
+    <div class="flash error">
+      Achtung: Es ist noch ein <strong>offener Eintrag vom {{ stale_date }}</strong> vorhanden.
+      Bitte manuell korrigieren.
+    </div>
+  {% endif %}
+
+  <div class="status status-{{ state }}">
+    {% if state == 'idle' %}Bereit
+    {% elif state == 'working' %}In Arbeit seit {{ entry.start_at }}
+    {% elif state == 'paused' %}Pause läuft seit {{ breaks[-1].break_start }}
+    {% endif %}
+  </div>
+
+  {% if state != 'idle' and breaks %}
+    <p class="muted">Pausen heute:
+      {% for b in breaks %}{{ b.break_start }}–{{ b.break_end or '…' }}{% if not loop.last %}, {% endif %}{% endfor %}
+    </p>
+  {% endif %}
+
+  <div class="buttons">
+    {% if state == 'idle' %}
+      <form method="post" action="{{ url_for('punch_action', action='start') }}">
+        <button class="btn big green">▶ Loslegen</button>
+      </form>
+    {% else %}
+      <form method="post" action="{{ url_for('punch_action', action='break') }}">
+        <button class="btn big amber">{% if state=='paused' %}▶ Weiter{% else %}⏸ Pause{% endif %}</button>
+      </form>
+      <form method="post" action="{{ url_for('punch_action', action='end') }}">
+        <button class="btn big red">⏹ Ende</button>
+      </form>
+      <p class="muted center">Arbeitszeit bisher: <strong>{{ worked }}</strong></p>
+    {% endif %}
+  </div>
+</div>
+
+{% if recent %}
+<div class="card">
+  <h2>Letzte Einträge</h2>
+  <table class="table">
+    <thead><tr><th>Datum</th><th>Beginn</th><th>Pausen</th><th>Ende</th><th>Zeit</th><th></th></tr></thead>
+    <tbody>
+    {% for e in recent %}
+      <tr>
+        <td>{{ e.work_date }}</td>
+        <td>{{ e.start_at or '—' }}</td>
+        <td>{% if e.breaks %}{% for b in e.breaks %}{{ b.break_start }}–{{ b.break_end or '…' }}{% if not loop.last %}<br>{% endif %}{% endfor %}{% else %}—{% endif %}</td>
+        <td>{{ e.end_at or '…' }}</td>
+        <td>{% if e.minutes is not none %}{{ '%.2f'|format(e.minutes/60) }} h{% else %}—{% endif %}</td>
+        <td>
+          <form method="post" action="{{ url_for('entry_delete', eid=e.id) }}"
+                onsubmit="return confirm('Eintrag {{ e.work_date }} wirklich löschen?')">
+            <button class="linkbtn" title="löschen">✕</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<script>
+  function tick(){
+    const d=new Date();
+    document.getElementById('clock').textContent =
+      d.toLocaleDateString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit'})
+      + ' · ' + d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+  }
+  tick(); setInterval(tick, 15000);
+</script>
+{% endblock %}
